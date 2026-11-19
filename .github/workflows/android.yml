@@ -1,1 +1,48 @@
 
+name: Build DoDam MM-INCH APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download project
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Extract project ZIP
+        run: |
+          mkdir -p source
+          unzip -q DoDamMMInch_Mobile_CloudBuild.zip -d source
+
+      - name: Build APK
+        run: |
+          SETTINGS=$(find source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -print -quit)
+          if [ -z "$SETTINGS" ]; then
+            echo "Project settings file not found"
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$SETTINGS")
+          gradle -p "$PROJECT_DIR" assembleDebug
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DoDamMMInch-APK
+          path: source/**/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
